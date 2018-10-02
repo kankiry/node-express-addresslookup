@@ -1,12 +1,14 @@
-var createError = require('http-errors');
 var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
 var bodyparser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
+var logger = require('morgan');
+var createError = require('http-errors');
+var path = require('path');
+var utils = require("./routes/utils");
+var mysql = require("mysql");
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var router = require('./routes/index');
 
 var app = express();
 
@@ -16,14 +18,131 @@ app.set('view engine', 'jade');
 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
 //app.use(bodyparser.json());
-//app.use(bodyparser.urlencoded({extend: true}));
+//app.use(bodyparser.urlencoded({extend: false}));
+app.use(cookieParser());
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use(session({
+  key: "user_sid",
+  secret: 'cdatajapaninc',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    expires:null, //60000,
+    httpOnly: true,
+  }
+}));
+
+app.use((req, res, next) => {
+  if (req.cookies.user_sid && !req.session.user) {
+    res.clearCookie('user_sid');
+  }
+  next();
+});
+
+var sessionChecker = (req, res, next) => {
+  if (req.session.user && req.cookies.user_sid) {
+    console.log(req.url);
+    if( req.url.includes('/main') ) {
+      next();
+    } else {
+      res.redirect('/main');
+    }
+  }else {
+    next();
+  }
+};
+
+var sessionCheckerApi = (req, res, next) => {
+  if (req.session.user && req.cookies.user_sid) {
+    next();
+  }else {
+    res.send({Result: "NG"});
+  }
+};
+
+app.get('/', sessionChecker, function(req, res) {
+  res.redirect('signin');
+});
+
+app.route('/signup')
+  .get(sessionChecker, (req, res) => {
+    console.log("get signup");
+    res.sendFile(path.join(__dirname, "public", "www", "signup.html"));
+  })
+  .post((req, res) => {
+    try{
+    console.log("post signup");
+    if (utils.adduser(req.body.username, req.body.password)) {
+      req.session.user = req.body.username;
+      console.log("signup succeeded");
+      res.redirect("/main");
+    } else {
+      console.log("signup fail");
+      res.redirect("/signup");
+    }
+    }catch(e){
+      console.log(e.message);
+    }
+  });
+
+app.route("/login")
+  .get(sessionChecker, (req, res) => {
+    console.log("get login");
+    res.sendFile(path.join(__dirname, "public", "www", "login.html"));
+  })
+  .post((req, res) => {
+    try{
+    console.log("post login");
+    if (utils.authuser(req.body.username, req.body.password)) {
+      req.session.user = req.body.username;
+      console.log("login succeeded");
+      res.location("/main");
+      res.end();
+    } else {
+      console.log("login fail");
+    }     
+    }catch(e){
+      console.log(e.message);
+    }
+  });
+
+app.route("/main")
+  .get(sessionChecker, (req, res) => {
+    console.log("get main");
+    res.sendFile(path.join(__dirname, "public", "www", "main.html"));
+  })
+
+app.route("/records")
+  .get(sessionCheckerApi, (req, res) => {
+    console.log("post records");
+    var conn = mysql.createConnection({
+      host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
+      user: "admin",
+      password: "cdatajdemo",
+      database: "testdb"
+    });
+
+    conn.connect( function(err) {
+      if (err) {
+        res.send({Result:"NG"});
+      } else {
+        var fields = ["zip", "prefecture", "city", "other", "kana"];
+        var query = conn.query('SELECT ?? FROM address WHERE city = "石巻市"', [fields], function(err, result) {
+          if (err) {
+          }else {
+            console.log(result);
+            res.send(result);
+          }
+        });
+      }
+  })
+  })
+
+app.use('/', router);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
