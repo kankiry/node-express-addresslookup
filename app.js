@@ -153,7 +153,7 @@ app.route("/insert")
   });
 
 app.route("/records")
-  .get(sessionCheckerApi, (req, res) => {
+  .post(sessionCheckerApi, (req, res) => {
     console.log("get records");
     var conn = mysql.createConnection({
       host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
@@ -162,12 +162,32 @@ app.route("/records")
       database: "testdb"
     });
 
+    console.log(req.body);
+
     conn.connect( function(err) {
       if (err) {
         res.send({Result:"NG", Message:"Database connection error."});
       } else {
+        var filter = [];
+        var where = " WHERE ";
+
+        if(req.body.zip != "") filter.push('zip = "?"'.replace("?", req.body.zip));
+        if(req.body.prefecture != "") filter.push('prefecture = "?"'.replace("?", req.body.prefecture));
+        if(req.body.city != "") filter.push('city = "?"'.replace("?", req.body.city));
+        if(req.body.other != "") filter.push('other = "?"'.replace("?", req.body.other));
+        if(req.body.kana != "") filter.push('kana = "?"'.replace("?", req.body.kana));
+
+        if(filter.length == 0) where = "";
+        else if(filter.length == 1) where += filter[0];
+        else if(2 <= filter.length) where += filter.join(" AND ");
+
+        console.log(filter);
+        console.log(where);
+
         var fields = ["zip", "prefecture", "city", "other", "kana"];
-        var query = conn.query('SELECT ?? FROM address WHERE city = "石巻市"', [fields], function(err, result) {
+        var sql = "SELECT ?? FROM address" + where;
+
+        var query = conn.query(sql, [fields], function(err, result) {
           if (err) {
             console.log(err);
             res.send({Result:"OK", Data:[]});
