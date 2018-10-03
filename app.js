@@ -43,6 +43,7 @@ app.use((req, res, next) => {
   next();
 });
 
+/*
 var sessionChecker = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) {
     console.log(req.url);
@@ -55,10 +56,23 @@ var sessionChecker = (req, res, next) => {
     next();
   }
 };
+*/
 
+var sessionChecker = (req, res, next) => {
+  console.log("sessinCheck for " + req.url);
+  if (req.session.user && req.cookies.user_sid) {
+    console.log("sid ok");
+    if(req.url == "/login") res.redirect("/main");
+    else next();
+  }else {
+    console.log("sid ng");
+    if(req.url == "/login") next();
+    else res.redirect('/login');
+  }
+};
 
 app.get('/', sessionChecker, function(req, res) {
-  res.redirect('signin');
+  res.redirect('/main');
 });
 
 app.route('/signup')
@@ -66,7 +80,7 @@ app.route('/signup')
     console.log("get signup");
     res.sendFile(path.join(__dirname, "public", "www", "signup.html"));
   })
-  .post((req, res) => {
+  .post(sessionChecker, (req, res) => {
     try{
     console.log("post signup");
     if (utils.adduser(req.body.username, req.body.password)) {
@@ -109,6 +123,13 @@ app.route("/main")
     res.sendFile(path.join(__dirname, "public", "www", "main.html"));
   })
 
+
+app.route("/profile")
+  .get(sessionChecker, (req, res) => {
+    console.log("get profile");
+    res.sendFile(path.join(__dirname, "public", "www", "profile.html"));
+  })
+
 var sessionCheckerApi = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) {
     next();
@@ -120,7 +141,6 @@ var sessionCheckerApi = (req, res, next) => {
 app.route("/insert")
   .post(sessionCheckerApi, (req, res) => {
     console.log("post insert");
-    console.log(req.body.Data);
     var conn = mysql.createConnection({
       host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
       user: "admin",
@@ -131,7 +151,6 @@ app.route("/insert")
     req.body.Data.forEach(v => {
       v[0] = parseInt(v[0]);
     });
-    console.log(req.body.Data);
 
     conn.connect( function(err) {
       if(err) {
@@ -162,8 +181,6 @@ app.route("/records")
       database: "testdb"
     });
 
-    console.log(req.body);
-
     conn.connect( function(err) {
       if (err) {
         res.send({Result:"NG", Message:"Database connection error."});
@@ -181,18 +198,16 @@ app.route("/records")
         else if(filter.length == 1) where += filter[0];
         else if(2 <= filter.length) where += filter.join(" AND ");
 
-        console.log(filter);
-        console.log(where);
-
         var fields = ["zip", "prefecture", "city", "other", "kana"];
         var sql = "SELECT ?? FROM address" + where;
 
         var query = conn.query(sql, [fields], function(err, result) {
           if (err) {
+            console.log("failed");
             console.log(err);
             res.send({Result:"OK", Data:[]});
           }else {
-            console.log(result);
+            console.log("succeeded");
             res.send({Result:"OK", Data:result});
           }
           conn.end();

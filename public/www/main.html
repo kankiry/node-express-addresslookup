@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>CData API Server Demo</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.css" rel="stylesheet">
+    <link href="./css/main.css" rel="stylesheet">
+
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header clearfix">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation" class="active"><a href="/main">Home</a></li>
+            <li role="presentation"><a href="/profile">Profile</span></a></li>
+            <li role="presentation"><a href="#">Logout</a></li>
+          </ul>
+        </nav>
+        <h2 class="text-muted">郵便番号・住所検索</h2>
+      </div>
+      <div class="maintable-header">
+        <h3 class="text-muted">新規追加</h4>
+        <hr class="title-border">
+        <div class="row maintable-column" id="insert">
+          <input type="number" name="zip" class="col-sm-2 quantity" placeholder="郵便番号">
+          <input type="text" name="prefecture" class="col-sm-2" placeholder="都道府県">
+          <input type="text" name="city" class="col-sm-2" placeholder="市区町村">
+          <input type="text" name="other" class="col-sm-3" placeholder="町・字">
+          <input type="text" name="kana" class="col-sm-3" placeholder="読み仮名">
+        </div>
+        <div class="maintable-control clearfix">
+          <button id="apply" class="btn btn-sm btn-primary pull-right" type="submit" >Insert</button>
+        </div>
+      </div>
+      <div class="maintable-header">
+      <h3 class="text-muted">住所一覧</h3>
+      <hr class="title-border">
+        <div class="row maintable-column" id="filter">
+          <input type="number" name="zip" class="col-sm-2 quantity" placeholder="filter ...">
+          <input type="text" name="prefecture" class="col-sm-2" placeholder="">
+          <input type="text" name="city" class="col-sm-2" placeholder="">
+          <input type="text" name="other" class="col-sm-3" placeholder="">
+          <input type="text" name="kana" class="col-sm-3" placeholder="">
+        </div>
+      </div>
+      <div class="maintable">
+        <table class="table table-bordered table-striped maintable-color">
+          <thead>
+            <tr>
+              <th class="col-sm-2">郵便番号</th>
+              <th class="col-sm-2">都道府県</th>
+              <th class="col-sm-2">市区町村</th>
+              <th class="col-sm-3">町・字</th>
+              <th class="col-sm-3">読み仮名</th>
+            </tr>
+          </thead>
+          <tbody id="records">
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="footer">
+        <p>&copy; 2016 Company, Inc.</p>
+      </footer>
+
+    </div> <!-- /container -->
+    <script type="text/javascript">
+    $(document).ready(function(){
+      var update = function() {
+        console.log("update filter: ");
+        var filter = {
+          zip: $("#filter input[name='zip']").val(),
+          prefecture: $("#filter input[name='prefecture']").val(),
+          city: $("#filter input[name='city']").val(),
+          other: $("#filter input[name='other']").val(),
+          kana: $("#filter input[name='kana']").val(),
+        };
+
+        console.log(filter);
+
+        $.post(
+          "/records",
+          filter
+        )
+          .done(function(data, textStatus, jqXHR) {
+            console.log("recodes succeeded");
+
+            if(data.Result == "OK") {
+              // remove all records
+              $("#records").children("tr").remove();
+
+            // add records again
+              data.Data.forEach(v => {
+                $("<tr></tr>").appendTo("#records");
+                $("<td></td>").text(v.zip).appendTo("#records tr:last-child");
+                $("<td></td>").text(v.prefecture).appendTo("#records tr:last-child");
+                $("<td></td>").text(v.city).appendTo("#records tr:last-child");
+                $("<td></td>").text(v.other).appendTo("#records tr:last-child");
+                $("<td></td>").text(v.kana).appendTo("#records tr:last-child");
+              });
+            }
+          })
+          .fail(function(data, textStatus, error) {
+            console.log("records failed");
+          });
+      }
+
+      update();
+
+      $("#apply").click(() => {
+        var data = [
+          parseInt($("#insert input[name='zip']").val()),
+          $("#insert input[name='prefecture']").val(),
+          $("#insert input[name='city']").val(),
+          $("#insert input[name='other']").val(),
+          $("#insert input[name='kana']").val(),
+        ];
+        console.log(data);
+
+        $.post(
+          "/insert",
+          {Data: [data]}
+          )
+          .done(function(data, textStatus, jqXHR) {
+            console.log("insert succeeded");
+          })
+          .fail(function(data, textStauts, error) {
+            console.log("insert failed");
+          });
+      });
+
+      $("#filter").children("input").blur(function() {
+        console.log("blured");
+          update();
+      });
+          
+    });
+    </script>
+  </body>
+</html>

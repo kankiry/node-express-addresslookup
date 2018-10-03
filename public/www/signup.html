@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>CData API Server Demo</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.css" rel="stylesheet">
+    <link href="./css/signin.css" rel="stylesheet">
+
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/jquery.validate.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+  </head>
+  <body class="text-center">
+    <form id="form" class="form-signin" >
+      <h4 class="h4 mb-3 font-weight-light">Welcome to CData Demo</h4>
+      <h5 class="h5 mb-3 font-weight-normal">Please sign up</h5>
+      <label for="username" class="sr-only">Username</label>
+      <input type="text" pattern="^[A-Za-z0-9_]+$" id="username" name="username" class="form-control" placeholder="Username" autofocus>
+      <label for="password" class="sr-only">Password</label>
+      <input type="password" id="password" name="password" class="form-control" placeholder="Password">
+      <label for="confirm" class="sr-only">Confirm Password</label>
+      <input type="password" id="confirm" name="confirm" class="form-control" placeholder="Confirm Password">
+      <button class="btn btn-lg btn-primary btn-block" id="signup" name="signup" type="submit">Sign up</button>
+      <div id="errortxt" class="errortxt"></div>
+    </form>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      $.validator.addMethod(
+        "regex",
+        function(value, element, pattern){
+          var re = new RegExp(pattern);
+          return this.optional(element) || re.test(value);
+        },
+        "Valid characters are "
+      );
+
+      $("#form").validate({
+        debug: true,
+        rules: {
+          username: {
+            required: true,
+            regex: "^[A-Za-z0-9_]+$",
+            //unique: $("#username").val(),
+          },
+          password: {
+            required: true,
+            regex: "^[A-Za-z0-9_@]+$"
+          },
+          confirm: {
+            required: true,
+            equalTo: "#password"
+          }
+        },
+        errorElement: "div",
+        errorLabelContainer: "#errortxt"
+      });
+
+      $("#signup").click(function(){
+        var username = $("#username").val();
+        $.post(
+          "/signup",
+          {
+            username: $("#username").val(),
+            password: $("#password").val(),
+          },
+          function(data, textStatus, jqXHR)
+          {
+            console.log(data);
+
+            if (jqXHR.status == 200 && data.Result == "OK" ) {
+              console.log("signup succeeded");  
+            }else {
+              $("#errortxt").text(username + " already exists.");
+            }
+          },
+        );
+      });
+    });
+
+  </script>
+  </body>

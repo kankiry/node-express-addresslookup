@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>CData API Server Demo</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.css" rel="stylesheet">
+    <link href="./css/profile.css" rel="stylesheet">
+
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header clearfix">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation"><a href="/main">Home</a></li>
+            <li role="presentation" class="active"><a href="/profile">Profile</span></a></li>
+            <li role="presentation"><a href="#">Logout</a></li>
+          </ul>
+        </nav>
+        <h2 class="text-muted">タイトル</h2>
+      </div>
+      <div class="profile-container">
+        <div class="profile-group">
+          <h3 class="text-muted">アカウント情報</h4>
+          <hr class="title-border">
+          <label for="username">ユーザー名</label>
+          <input id="username" type="text" class="form-control" disabled="disabled">
+        </div>
+        <div class="profile-group">
+          <h3 class="text-muted">パスワード</h4>
+          <hr class="title-border">
+          <div class="form-group">
+            <label for="password">現在のパスワード</label>
+            <input id="password" type="password" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="new_password">新しいパスワード</label>
+            <input id="new_password" type="password" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="confirm_password">新しいパスワード（確認用）</label>
+            <input id="confirm_password" type="password" class="form-control">
+          </div>
+          <div class="profile-control clearfix">
+            <button id="apply" class="btn btn-sm btn-primary pull-right" type="submit" >パスワード変更</button>
+          </div>
+        </div>
+        <div class="profile-group">
+          <h3 class="text-muted">Web API</h4>
+          <hr class="title-border">
+          <div class="form-group">
+            <label for="username" >API認証トークン</label>
+            <input id="apitoken" type="text" class="form-control" disabled="disabled">
+          </div>
+          <div class="profile-control clearfix">
+            <button id="gettoken" class="btn btn-sm btn-primary pull-right" type="submit" >認証トークン取得</button>
+          </div>
+        </div>
+
+      <footer class="footer">
+        <p>&copy; 2016 Company, Inc.</p>
+      </footer>
+
+    </div> <!-- /container -->
+    <script type="text/javascript">
+    $(document).ready(function(){
+          
+    });
+    </script>
+  </body>
+</html>
