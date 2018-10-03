@@ -56,13 +56,6 @@ var sessionChecker = (req, res, next) => {
   }
 };
 
-var sessionCheckerApi = (req, res, next) => {
-  if (req.session.user && req.cookies.user_sid) {
-    next();
-  }else {
-    res.send({Result: "NG"});
-  }
-};
 
 app.get('/', sessionChecker, function(req, res) {
   res.redirect('signin');
@@ -116,9 +109,52 @@ app.route("/main")
     res.sendFile(path.join(__dirname, "public", "www", "main.html"));
   })
 
+var sessionCheckerApi = (req, res, next) => {
+  if (req.session.user && req.cookies.user_sid) {
+    next();
+  }else {
+    res.status(401).end();
+  }
+};
+
+app.route("/insert")
+  .post(sessionCheckerApi, (req, res) => {
+    console.log("post insert");
+    console.log(req.body.Data);
+    var conn = mysql.createConnection({
+      host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
+      user: "admin",
+      password: "cdatajdemo",
+      database: "testdb"
+    });
+
+    req.body.Data.forEach(v => {
+      v[0] = parseInt(v[0]);
+    });
+    console.log(req.body.Data);
+
+    conn.connect( function(err) {
+      if(err) {
+        res.send({Result:"NG", Message:"Database connection error."});
+      } else {
+        var sql = "INSERT INTO address (zip, prefecture, city, other, kana) VALUES ?";
+        conn.query(sql, [req.body.Data], function(err) {
+          if(err) {
+            console.log(err);
+            res.send({Result:"NG", Message:"Database query error."});
+          } else {
+            console.log("insert succeeded.");
+            res.send({Result:"OK"});
+          }
+          conn.end();
+        });
+      }
+    });
+  });
+
 app.route("/records")
   .get(sessionCheckerApi, (req, res) => {
-    console.log("post records");
+    console.log("get records");
     var conn = mysql.createConnection({
       host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
       user: "admin",
@@ -128,19 +164,22 @@ app.route("/records")
 
     conn.connect( function(err) {
       if (err) {
-        res.send({Result:"NG"});
+        res.send({Result:"NG", Message:"Database connection error."});
       } else {
         var fields = ["zip", "prefecture", "city", "other", "kana"];
         var query = conn.query('SELECT ?? FROM address WHERE city = "石巻市"', [fields], function(err, result) {
           if (err) {
+            console.log(err);
+            res.send({Result:"OK", Data:[]});
           }else {
             console.log(result);
-            res.send(result);
+            res.send({Result:"OK", Data:result});
           }
+          conn.end();
         });
       }
-  })
-  })
+    });
+  });
 
 app.use('/', router);
 
