@@ -1,14 +1,12 @@
 var express = require('express');
-var bodyparser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var logger = require('morgan');
 var createError = require('http-errors');
 var path = require('path');
-var utils = require("./routes/utils");
 var mysql = require("mysql");
-
-var router = require('./routes/index');
+var http = require("http");
+var utils = require("./utils");
 
 var app = express();
 
@@ -16,15 +14,12 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
+// mount common middleware
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-//app.use(bodyparser.json());
-//app.use(bodyparser.urlencoded({extend: false}));
 app.use(cookieParser());
-
 app.use(express.static(path.join(__dirname, 'public')));
-
 app.use(session({
   key: "user_sid",
   secret: 'cdatajapaninc',
@@ -35,7 +30,6 @@ app.use(session({
     httpOnly: true,
   }
 }));
-
 app.use((req, res, next) => {
   if (req.cookies.user_sid && !req.session.user) {
     res.clearCookie('user_sid');
@@ -43,180 +37,203 @@ app.use((req, res, next) => {
   next();
 });
 
-/*
-var sessionChecker = (req, res, next) => {
+var sessionCheck = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) {
-    console.log(req.url);
-    if( req.url.includes('/main') ) {
-      next();
-    } else {
-      res.redirect('/main');
-    }
-  }else {
     next();
   }
-};
-*/
-
-var sessionChecker = (req, res, next) => {
-  console.log("sessinCheck for " + req.url);
-  if (req.session.user && req.cookies.user_sid) {
-    console.log("sid ok");
-    if(req.url == "/login") res.redirect("/main");
-    else next();
-  }else {
-    console.log("sid ng");
-    if(req.url == "/login") next();
-    else res.redirect('/login');
+  else {
+    res.redirect('/login');
   }
 };
 
-app.get('/', sessionChecker, function(req, res) {
+var sessionCheckLogin = (req, res, next) => {
+  if (req.session.user && req.cookies.user_sid) res.redirect("/main");
+  else next();
+};
+
+var sessionCheckApi = (req, res, next) => {
+  if (req.session.user && req.cookies.user_sid) next();
+  else res.status(401).end();
+};
+
+app.get('/', function(req, res) {
   res.redirect('/main');
 });
 
 app.route('/signup')
-  .get(sessionChecker, (req, res) => {
-    console.log("get signup");
+  .get((req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "signup.html"));
   })
-  .post(sessionChecker, (req, res) => {
-    try{
-    console.log("post signup");
-    if (utils.adduser(req.body.username, req.body.password)) {
+  .post((req, res) => {
+    if (utils.addUser(req.body.username, req.body.password)) {
       req.session.user = req.body.username;
-      console.log("signup succeeded");
       res.redirect("/main");
     } else {
-      console.log("signup fail");
       res.redirect("/signup");
-    }
-    }catch(e){
-      console.log(e.message);
     }
   });
 
 app.route("/login")
-  .get(sessionChecker, (req, res) => {
-    console.log("get login");
-    res.sendFile(path.join(__dirname, "public", "www", "login.html"));
-  })
+  .get(
+    (req, res, next) => {
+      if (req.session.user && req.cookies.user_sid) {
+        res.redirect("/main");
+      }
+      else {
+        next();
+      }
+    },
+    (req, res) => {
+      res.sendFile(path.join(__dirname, "public", "www", "login.html"));
+    }
+  )
   .post((req, res) => {
-    try{
-    console.log("post login");
-    if (utils.authuser(req.body.username, req.body.password)) {
+    if (utils.authUser(req.body.username, req.body.password)) {
       req.session.user = req.body.username;
       console.log("login succeeded");
       res.location("/main");
       res.end();
+      //res.redirect("/main");
     } else {
       console.log("login fail");
     }     
-    }catch(e){
-      console.log(e.message);
-    }
   });
 
 app.route("/main")
-  .get(sessionChecker, (req, res) => {
-    console.log("get main");
+  .get(sessionCheck, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "main.html"));
   })
 
 
 app.route("/profile")
-  .get(sessionChecker, (req, res) => {
-    console.log("get profile");
+  .get(sessionCheck, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "profile.html"));
   })
 
-var sessionCheckerApi = (req, res, next) => {
-  if (req.session.user && req.cookies.user_sid) {
-    next();
-  }else {
-    res.status(401).end();
-  }
-};
 
 app.route("/insert")
-  .post(sessionCheckerApi, (req, res) => {
-    console.log("post insert");
+  .post(sessionCheckApi, (req, res) => {
+    var conf = utils.getConf();
     var conn = mysql.createConnection({
-      host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
-      user: "admin",
-      password: "cdatajdemo",
-      database: "testdb"
+      host: conf.database_host,
+      user: conf.database_user,
+      password: conf.database_password,
+      database: conf.database_name,
     });
-
-    req.body.Data.forEach(v => {
-      v[0] = parseInt(v[0]);
-    });
-
     conn.connect( function(err) {
-      if(err) {
-        res.send({Result:"NG", Message:"Database connection error."});
-      } else {
-        var sql = "INSERT INTO address (zip, prefecture, city, other, kana) VALUES ?";
-        conn.query(sql, [req.body.Data], function(err) {
-          if(err) {
-            console.log(err);
-            res.send({Result:"NG", Message:"Database query error."});
-          } else {
-            console.log("insert succeeded.");
-            res.send({Result:"OK"});
-          }
-          conn.end();
-        });
-      }
+      if(err) res.send( {Result:"NG", Message:err.message} );
+
+      var sql = "INSERT INTO address (zip, prefecture, city, other, kana) VALUES ?";
+      var data = [
+        parseInt(req.body.Data.zip),
+        req.body.Data.prefecture,
+        req.body.Data.city,
+        req.body.Data.other,
+        req.body.Data.kana
+      ];
+
+      conn.query(sql, [[data]], function(err) {
+        if(err) res.send( {Result:"NG", Message:err.message} );
+        console.log("data inserting succeeded");
+        res.send({Result:"OK"});
+        conn.end();
+      });
     });
   });
 
 app.route("/records")
-  .post(sessionCheckerApi, (req, res) => {
-    console.log("get records");
+  .post(sessionCheckApi, (req, res) => {
+    var conf = utils.getConf();
     var conn = mysql.createConnection({
-      host: "cdatajapisertver.csmyxxxr4ysy.ap-northeast-1.rds.amazonaws.com",
-      user: "admin",
-      password: "cdatajdemo",
-      database: "testdb"
+      host: conf.database_host,
+      user: conf.database_user,
+      password: conf.database_password,
+      database: conf.database_name
     });
-
     conn.connect( function(err) {
-      if (err) {
-        res.send({Result:"NG", Message:"Database connection error."});
-      } else {
-        var filter = [];
-        var where = " WHERE ";
+      if(err) res.send( {Result:"NG", Message:err.message} );
+        
+      var filter = [];
+      if(req.body.Filter.zip != "") filter.push('zip = "?"'.replace("?", req.body.Filter.zip));
+      if(req.body.Filter.prefecture != "") filter.push('prefecture = "?"'.replace("?", req.body.Filter.prefecture));
+      if(req.body.Filter.city != "") filter.push('city = "?"'.replace("?", req.body.Filter.city));
+      if(req.body.Filter.other != "") filter.push('other = "?"'.replace("?", req.body.Filter.other));
+      if(req.body.Filter.kana != "") filter.push('kana = "?"'.replace("?", req.body.Filter.kana));
 
-        if(req.body.zip != "") filter.push('zip = "?"'.replace("?", req.body.zip));
-        if(req.body.prefecture != "") filter.push('prefecture = "?"'.replace("?", req.body.prefecture));
-        if(req.body.city != "") filter.push('city = "?"'.replace("?", req.body.city));
-        if(req.body.other != "") filter.push('other = "?"'.replace("?", req.body.other));
-        if(req.body.kana != "") filter.push('kana = "?"'.replace("?", req.body.kana));
+      var where = " WHERE ";
+      if(filter.length == 0) where = "";
+      else if(filter.length == 1) where += filter[0];
+      else if(2 <= filter.length) where += filter.join(" AND ");
 
-        if(filter.length == 0) where = "";
-        else if(filter.length == 1) where += filter[0];
-        else if(2 <= filter.length) where += filter.join(" AND ");
+      var fields = ["zip", "prefecture", "city", "other", "kana"];
+      var sql = "SELECT ?? FROM address" + where;
 
-        var fields = ["zip", "prefecture", "city", "other", "kana"];
-        var sql = "SELECT ?? FROM address" + where;
+      var query = conn.query(sql, [fields], function(err, result) {
+        if(err) res.send( {Result:"NG", Message:err.message} );
+        console.log("data selecting succeeded");
+        res.send({Result:"OK", Data:result});
+        conn.end();
+      });
+    });
+  });
+      
+app.route("/api/info")
+  .get(sessionCheckApi, (req, res) => {
+    var retv = {
+      Username: req.session.user,
+      Resource: "address",
+      Token: "",
+      Permission: "",
+    };
 
-        var query = conn.query(sql, [fields], function(err, result) {
-          if (err) {
-            console.log("failed");
-            console.log(err);
-            res.send({Result:"OK", Data:[]});
-          }else {
-            console.log("succeeded");
-            res.send({Result:"OK", Data:result});
-          }
-          conn.end();
-        });
+    utils.getApiUsers()
+    .then((data) => {
+      console.log("API User data");
+      console.log(data);
+      
+      console.log("Session User");
+      console.log(req.session.user);
+
+      console.log(data.admin);
+      console.log(data.guest);
+      console.log(data.hogehoge);
+      console.log(data.user);
+
+      if(req.session.user in data) {
+        retv.Token = data[req.session.user].AuthToken;
+        retv.Permission = data[req.session.user].Privileges;
       }
+
+      console.log(retv);
+      res.send({Result: "OK", Data: retv});
+    })
+    .catch((err) => {
+      console.log("userinfo error");
+      console.log(err.message);
+      res.send({Result: "NG", Message: err.message});
     });
   });
 
-app.use('/', router);
+app.route("/api/newusr")
+  .get(sessionCheckApi, (req, res) => {
+    utils.addApiUsers(req.session.user)
+    .then((data) => {
+      console.log("API New User Succeeded");
+      res.send({Result: "OK", Data:data});
+    })
+    .catch((err) => {
+      console.log("API New User Failed");
+      console.log(err.message);
+      res.send({Result: "NG", Message: err.message});
+    });
+  });
+
+app.route("/logout")
+  .get((req, res) => {
+    res.clearCookie('user_sid');
+    res.redirect("/login");
+  });
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

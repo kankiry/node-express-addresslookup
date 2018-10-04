@@ -41,7 +41,7 @@
             console.log("success");
             console.log(jqXHR.getResponseHeader("Location"));
             
-            window.location = jqXHR.getResponseHeader("Location");
+            //window.location = jqXHR.getResponseHeader("Location");
           })
           .fail(function(data, textStatus, error){
             console.log("fail");
@@ -51,7 +51,7 @@
           })
           .always(function(data, textStatus, jqXHR){
             console.log("always");
-            window.location = jqXHR.getResponseHeader("Location");
+            //window.location = jqXHR.getResponseHeader("Location");
           })
           
       });

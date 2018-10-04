@@ -33,6 +33,10 @@ body {
   color: #0000ff;
 }
 
+.profile-description {
+  margin-bottom: 30px;
+}
+
 .quantity::-webkit-inner-spin-button,
 .quantity::-webkit-outer-spin-button {
   -webkit-appearance: none;

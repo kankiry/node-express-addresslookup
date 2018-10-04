@@ -22,7 +22,7 @@
           <ul class="nav nav-pills pull-right">
             <li role="presentation" class="active"><a href="/main">Home</a></li>
             <li role="presentation"><a href="/profile">Profile</span></a></li>
-            <li role="presentation"><a href="#">Logout</a></li>
+            <li role="presentation"><a href="/logout">Logout</a></li>
           </ul>
         </nav>
         <h2 class="text-muted">郵便番号・住所検索</h2>
@@ -89,7 +89,7 @@
 
         $.post(
           "/records",
-          filter
+          {Filter: filter}
         )
           .done(function(data, textStatus, jqXHR) {
             console.log("recodes succeeded");
@@ -117,18 +117,18 @@
       update();
 
       $("#apply").click(() => {
-        var data = [
-          parseInt($("#insert input[name='zip']").val()),
-          $("#insert input[name='prefecture']").val(),
-          $("#insert input[name='city']").val(),
-          $("#insert input[name='other']").val(),
-          $("#insert input[name='kana']").val(),
-        ];
+        var data = {
+          zip: $("#insert input[name='zip']").val(),
+          prefecture: $("#insert input[name='prefecture']").val(),
+          city: $("#insert input[name='city']").val(),
+          other: $("#insert input[name='other']").val(),
+          kana: $("#insert input[name='kana']").val(),
+        };
         console.log(data);
 
         $.post(
           "/insert",
-          {Data: [data]}
+          {Data: data}
           )
           .done(function(data, textStatus, jqXHR) {
             console.log("insert succeeded");

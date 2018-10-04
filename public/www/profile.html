@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -22,7 +22,7 @@
           <ul class="nav nav-pills pull-right">
             <li role="presentation"><a href="/main">Home</a></li>
             <li role="presentation" class="active"><a href="/profile">Profile</span></a></li>
-            <li role="presentation"><a href="#">Logout</a></li>
+            <li role="presentation"><a href="/logout">Logout</a></li>
           </ul>
         </nav>
         <h2 class="text-muted">タイトル</h2>
@@ -56,12 +56,23 @@
         <div class="profile-group">
           <h3 class="text-muted">Web API</h4>
           <hr class="title-border">
+          <div class="profile-description">
+            使い方については <a href="http://cdn.cdata.com/help/KWD/odata/pg_apiresources.htm">Web API Reference</a> をご覧ください。
+          </div>
           <div class="form-group">
             <label for="username" >API認証トークン</label>
             <input id="apitoken" type="text" class="form-control" disabled="disabled">
           </div>
           <div class="profile-control clearfix">
             <button id="gettoken" class="btn btn-sm btn-primary pull-right" type="submit" >認証トークン取得</button>
+          </div>
+          <div class="form-group">
+            <label for="resource" >利用可能なリソース</label>
+            <input id="resource" type="text" class="form-control" disabled="disabled">
+          </div>
+          <div class="form-group">
+            <label for="permission" >可能な操作</label>
+            <input id="permission" type="text" class="form-control" disabled="disabled">
           </div>
         </div>
 
@@ -72,6 +83,38 @@
     </div> <!-- /container -->
     <script type="text/javascript">
     $(document).ready(function(){
+      var update = function() {
+        $.get("/api/info")
+          .done((data, textStatus, jqXHR) => {
+            console.log(data);
+            $("#username").val(data.Data.Username);
+            $("#apitoken").val(data.Data.Token);
+
+            if(data.Data.Token != "") {
+              $("#resource").val(data.Data.Resource);
+              $("#permission").val(data.Data.Permission);
+              $("#gettoken").prop("disabled", true);
+            }
+          })
+          .fail((data, textStatus, err) => {
+            console.log(data);
+          });
+      };
+
+      update();
+
+
+      $("#gettoken").click(() => {
+        $.get("/api/newusr")
+          .done((data, textStatus, jqXHR) => {
+            console.log("newusr succeeded");
+            console.log(data);
+            $("#gettoken").prop("disabled", true);
+          })
+          .fail((data, textStatus, err) => {
+            console.log(data);
+          });
+      });
           
     });
     </script>
