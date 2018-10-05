@@ -46,11 +46,6 @@ var sessionCheck = (req, res, next) => {
   }
 };
 
-var sessionCheckLogin = (req, res, next) => {
-  if (req.session.user && req.cookies.user_sid) res.redirect("/main");
-  else next();
-};
-
 var sessionCheckApi = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) next();
   else res.status(401).end();
@@ -67,7 +62,7 @@ app.route('/signup')
   .post((req, res) => {
     if (utils.addUser(req.body.username, req.body.password)) {
       req.session.user = req.body.username;
-      res.redirect("/main");
+      res.redirect(307, "/main");
     } else {
       res.redirect("/signup");
     }

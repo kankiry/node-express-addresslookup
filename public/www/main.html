@@ -15,27 +15,36 @@
   </head>
 
   <body>
-
-    <div class="container">
-      <div class="header clearfix">
-        <nav>
-          <ul class="nav nav-pills pull-right">
-            <li role="presentation" class="active"><a href="/main">Home</a></li>
-            <li role="presentation"><a href="/profile">Profile</span></a></li>
-            <li role="presentation"><a href="/logout">Logout</a></li>
+    <nav class="navbar navbar-inverse navbar-static-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand navbar-left" href="/"><span class="glyphicon glyphicon-search" aria-hidden="true"></span> 郵便番号・住所検索サービス</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li class="active"><a href="/main">Home</a></li>
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/logout">Logout</a></li>
           </ul>
-        </nav>
-        <h2 class="text-muted">郵便番号・住所検索</h2>
+        </div>
       </div>
+    </nav>
+    <div class="container">
       <div class="maintable-header">
         <h3 class="text-muted">新規追加</h4>
         <hr class="title-border">
         <div class="row maintable-column" id="insert">
-          <input type="number" name="zip" class="col-sm-2 quantity" placeholder="郵便番号">
-          <input type="text" name="prefecture" class="col-sm-2" placeholder="都道府県">
+          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="郵便番号">
+          <input type="text" name="prefecture" class="col-sm-1" placeholder="都道府県">
           <input type="text" name="city" class="col-sm-2" placeholder="市区町村">
-          <input type="text" name="other" class="col-sm-3" placeholder="町・字">
-          <input type="text" name="kana" class="col-sm-3" placeholder="読み仮名">
+          <input type="text" name="other" class="col-sm-4" placeholder="町・字">
+          <input type="text" name="kana" class="col-sm-4" placeholder="読み仮名">
         </div>
         <div class="maintable-control clearfix">
           <button id="apply" class="btn btn-sm btn-primary pull-right" type="submit" >Insert</button>
@@ -45,22 +54,22 @@
       <h3 class="text-muted">住所一覧</h3>
       <hr class="title-border">
         <div class="row maintable-column" id="filter">
-          <input type="number" name="zip" class="col-sm-2 quantity" placeholder="filter ...">
-          <input type="text" name="prefecture" class="col-sm-2" placeholder="">
+          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="filter ...">
+          <input type="text" name="prefecture" class="col-sm-1" placeholder="">
           <input type="text" name="city" class="col-sm-2" placeholder="">
-          <input type="text" name="other" class="col-sm-3" placeholder="">
-          <input type="text" name="kana" class="col-sm-3" placeholder="">
+          <input type="text" name="other" class="col-sm-4" placeholder="">
+          <input type="text" name="kana" class="col-sm-4" placeholder="">
         </div>
       </div>
       <div class="maintable">
         <table class="table table-bordered table-striped maintable-color">
           <thead>
             <tr>
-              <th class="col-sm-2">郵便番号</th>
-              <th class="col-sm-2">都道府県</th>
+              <th class="col-sm-1">郵便番号</th>
+              <th class="col-sm-1">都道府県</th>
               <th class="col-sm-2">市区町村</th>
-              <th class="col-sm-3">町・字</th>
-              <th class="col-sm-3">読み仮名</th>
+              <th class="col-sm-4">町・字</th>
+              <th class="col-sm-4">読み仮名</th>
             </tr>
           </thead>
           <tbody id="records">
@@ -106,6 +115,8 @@
                 $("<td></td>").text(v.city).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.other).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.kana).appendTo("#records tr:last-child");
+                $("#records tr:last-child td:last-child").append('<span class="pull-right glyphicon glyphicon-remove-sign" aria-hidden="true"></span>');
+                
               });
             }
           })
