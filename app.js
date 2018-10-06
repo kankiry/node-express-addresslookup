@@ -26,7 +26,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    expires:null, //60000,
+    expires:null,
     httpOnly: true,
   }
 }));
@@ -38,92 +38,76 @@ app.use((req, res, next) => {
 });
 
 var sessionCheck = (req, res, next) => {
-  console.log("SessionCheck");
   if (req.session.user && req.cookies.user_sid) {
-    console.log("SessionCheck OK");
+  //if (req.session.user) {
+    res.redirect("/main");
+  } else {
     next();
-  }
-  else {
-    console.log("SessionCheck NG");
-    res.redirect('/login');
   }
 };
 
 var sessionCheckApi = (req, res, next) => {
-  console.log("SessionCheckApi");
-  if (req.session.user && req.cookies.user_sid) {
-    console.log("SessionCheckApi OK");
-    next();
-  }else {
-    console.log("SessionCheckApi NG");
-    res.status(401).end();
-  }
-  
+  if (req.session.user && req.cookies.user_sid) next();
+  else res.status(401).end();
 };
 
 app.get('/', function(req, res) {
-  console.log("redirect / to /main");
   res.redirect('/main');
 });
 
 app.route('/signup')
-  .get((req, res) => {
+  .get(sessionCheck, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "signup.html"));
   })
   .post((req, res) => {
-    if (utils.addUser(req.body.username, req.body.password)) {
+    if (utils.adduser(req.body.username, req.body.password)) {
       req.session.user = req.body.username;
-      res.redirect(307, "/main");
+      res.location("/main");
+      res.send({Result:"OK"});
     } else {
-      res.redirect("/signup");
+      //res.location("/signup");
+      res.send({Result:"NG"});
     }
+    res.end();
   });
 
 app.route("/login")
-  .get(
-    (req, res, next) => {
-      console.log("GET /login");
-      if (req.session.user && req.cookies.user_sid) {
-        console.log("GET /login SessionCheck OK");
-        res.redirect("/main");
-      }
-      else {
-        console.log("GET /login SessionCheck NG");
-        next();
-      }
-    },
-    (req, res) => {
-      res.sendFile(path.join(__dirname, "public", "www", "login.html"));
-    }
-  )
+  .get(sessionCheck, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "www", "login.html"));
+  })
   .post((req, res) => {
-    console.log("POST /login");
-    if (utils.authUser(req.body.username, req.body.password)) {
-      console.log("POST /login SessionCheck OK");
+    var users = utils.getusers();
+    if(users[req.body.username] == req.body.password) {
       req.session.user = req.body.username;
       res.location("/main");
-      res.end();
-      //res.redirect("/main");
+      res.send({Result:"OK"});
     } else {
-      console.log("POST /login SessionCheck NG");
-    }     
+      //res.location("/login");
+      res.send({Result:"NG"});
+    }
   });
 
 app.route("/main")
-  .get(sessionCheck, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "www", "main.html"));
+  .get((req, res) => {
+    if (req.session.user && req.cookies.user_sid) {
+      res.sendFile(path.join(__dirname, "public", "www", "main.html"));
+    } else {
+      res.redirect("/login");
+    }
   })
-
 
 app.route("/profile")
-  .get(sessionCheck, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "www", "profile.html"));
+  .get((req, res) => {
+    if (req.session.user && req.cookies.user_sid) {
+      res.sendFile(path.join(__dirname, "public", "www", "profile.html"));
+    } else {
+      res.redirect("login");
+    }
   })
-
 
 app.route("/insert")
   .post(sessionCheckApi, (req, res) => {
-    var conf = utils.getConf();
+    var conf = utils.getconf();
     var conn = mysql.createConnection({
       host: conf.database_host,
       user: conf.database_user,
@@ -144,16 +128,18 @@ app.route("/insert")
 
       conn.query(sql, [[data]], function(err) {
         if(err) res.send( {Result:"NG", Message:err.message} );
-        console.log("data inserting succeeded");
-        res.send({Result:"OK"});
-        conn.end();
+        else {
+          console.log("POST /insert SUCCEEDED");
+          res.send({Result:"OK"});
+          conn.end();
+        }
       });
     });
   });
 
 app.route("/records")
   .post(sessionCheckApi, (req, res) => {
-    var conf = utils.getConf();
+    var conf = utils.getconf();
     var conn = mysql.createConnection({
       host: conf.database_host,
       user: conf.database_user,
@@ -175,14 +161,17 @@ app.route("/records")
       else if(filter.length == 1) where += filter[0];
       else if(2 <= filter.length) where += filter.join(" AND ");
 
-      var fields = ["zip", "prefecture", "city", "other", "kana"];
-      var sql = "SELECT ?? FROM address" + where;
+      //var fields = ["id", "zip", "prefecture", "city", "other", "kana"];
+      var sql = "SELECT * FROM address" + where;
 
-      var query = conn.query(sql, [fields], function(err, result) {
+      //var query = conn.query(sql, [fields], function(err, result) {
+      var query = conn.query(sql, function(err, result) {
         if(err) res.send( {Result:"NG", Message:err.message} );
-        console.log("data selecting succeeded");
-        res.send({Result:"OK", Data:result});
-        conn.end();
+        else {
+          console.log("POST /records SUCCEEDED");
+          res.send({Result:"OK", Data:result});
+          conn.end();
+        }
       });
     });
   });
@@ -199,7 +188,7 @@ app.route("/apiusr")
     utils.getApiUser(req.session.user)
     .then((data) => {
       if(data != null) {
-        var conf = utils.getConf();
+        var conf = utils.getconf();
         retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
         retv.Token = data.AuthToken;
         retv.Permission = data.Privileges;
@@ -225,7 +214,7 @@ app.route("/apiusr")
     utils.addApiUser(req.session.user)
     .then((data) => {
       console.log("API New User Succeeded");
-      var conf = utils.getConf();
+      var conf = utils.getconf();
       retv.Token = data.AuthToken;
       retv.Permission = data.Privileges;
       retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
@@ -241,6 +230,7 @@ app.route("/apiusr")
 app.route("/logout")
   .get((req, res) => {
     res.clearCookie('user_sid');
+    console.log("*** LOGOUT ***");
     res.redirect("/login");
   });
 

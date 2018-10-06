@@ -40,10 +40,11 @@
         <h3 class="text-muted">新規追加</h4>
         <hr class="title-border">
         <div class="row maintable-column" id="insert">
+          <input type="number" name="id" class="col-sm-1 quantity" placeholder="ID">
           <input type="number" name="zip" class="col-sm-1 quantity" placeholder="郵便番号">
           <input type="text" name="prefecture" class="col-sm-1" placeholder="都道府県">
           <input type="text" name="city" class="col-sm-2" placeholder="市区町村">
-          <input type="text" name="other" class="col-sm-4" placeholder="町・字">
+          <input type="text" name="other" class="col-sm-3" placeholder="町・字">
           <input type="text" name="kana" class="col-sm-4" placeholder="読み仮名">
         </div>
         <div class="maintable-control clearfix">
@@ -54,10 +55,11 @@
       <h3 class="text-muted">住所一覧</h3>
       <hr class="title-border">
         <div class="row maintable-column" id="filter">
-          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="filter ...">
+          <input type="number" name="id" class="col-sm-1 quantity" placeholder="filter ...">
+          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="">
           <input type="text" name="prefecture" class="col-sm-1" placeholder="">
           <input type="text" name="city" class="col-sm-2" placeholder="">
-          <input type="text" name="other" class="col-sm-4" placeholder="">
+          <input type="text" name="other" class="col-sm-3" placeholder="">
           <input type="text" name="kana" class="col-sm-4" placeholder="">
         </div>
       </div>
@@ -65,10 +67,11 @@
         <table class="table table-bordered table-striped maintable-color">
           <thead>
             <tr>
+              <th class="col-sm-1">ID</th>
               <th class="col-sm-1">郵便番号</th>
               <th class="col-sm-1">都道府県</th>
               <th class="col-sm-2">市区町村</th>
-              <th class="col-sm-4">町・字</th>
+              <th class="col-sm-3">町・字</th>
               <th class="col-sm-4">読み仮名</th>
             </tr>
           </thead>
@@ -85,8 +88,13 @@
     <script type="text/javascript">
     $(document).ready(function(){
       var update = function() {
+        var remove = function() {
+          var id = $(this).parent().parent().children().first().text();
+          console.log("remove clicked");
+        };
         console.log("update filter: ");
         var filter = {
+          id: $("#filter input[name='id']").val(),
           zip: $("#filter input[name='zip']").val(),
           prefecture: $("#filter input[name='prefecture']").val(),
           city: $("#filter input[name='city']").val(),
@@ -110,13 +118,14 @@
             // add records again
               data.Data.forEach(v => {
                 $("<tr></tr>").appendTo("#records");
+                $("<td></td>").text(v.id).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.zip).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.prefecture).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.city).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.other).appendTo("#records tr:last-child");
                 $("<td></td>").text(v.kana).appendTo("#records tr:last-child");
                 $("#records tr:last-child td:last-child").append('<span class="pull-right glyphicon glyphicon-remove-sign" aria-hidden="true"></span>');
-                
+                $("#records tr:last-child td:last-child span").click(remove);
               });
             }
           })

@@ -65,18 +65,18 @@
           {
             username: $("#username").val(),
             password: $("#password").val(),
-          },
-          function(data, textStatus, jqXHR)
-          {
-            console.log(data);
-
-            if (jqXHR.status == 200 && data.Result == "OK" ) {
-              console.log("signup succeeded");  
-            }else {
-              $("#errortxt").text(username + " already exists.");
-            }
-          },
-        );
+          })
+          .done(function(data, textStatus, jqXHR) {
+            console.log(".done");
+          })
+          .fail(function(data, textStatus, error) {
+            console.log(".fail");
+            console.log(error.message);
+          })
+          .always(function(data, textStatus, jqXHR){
+            if(data.Result == "OK") window.location = jqXHR.getResponseHeader("Location");
+            else $("#errortxt").text(username + " already exists.");
+          });
       });
     });
 

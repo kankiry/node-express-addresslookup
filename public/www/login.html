@@ -50,10 +50,10 @@
             $("#errortxt").text("Error");
           })
           .always(function(data, textStatus, jqXHR){
-            console.log("always");
-            //window.location = jqXHR.getResponseHeader("Location");
-          })
-          
+            if(data.Result == "OK") window.location = jqXHR.getResponseHeader("Location");
+            else {
+            }
+          });
       });
     });
   </script>
