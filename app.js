@@ -38,20 +38,31 @@ app.use((req, res, next) => {
 });
 
 var sessionCheck = (req, res, next) => {
+  console.log("SessionCheck");
   if (req.session.user && req.cookies.user_sid) {
+    console.log("SessionCheck OK");
     next();
   }
   else {
+    console.log("SessionCheck NG");
     res.redirect('/login');
   }
 };
 
 var sessionCheckApi = (req, res, next) => {
-  if (req.session.user && req.cookies.user_sid) next();
-  else res.status(401).end();
+  console.log("SessionCheckApi");
+  if (req.session.user && req.cookies.user_sid) {
+    console.log("SessionCheckApi OK");
+    next();
+  }else {
+    console.log("SessionCheckApi NG");
+    res.status(401).end();
+  }
+  
 };
 
 app.get('/', function(req, res) {
+  console.log("redirect / to /main");
   res.redirect('/main');
 });
 
@@ -71,10 +82,13 @@ app.route('/signup')
 app.route("/login")
   .get(
     (req, res, next) => {
+      console.log("GET /login");
       if (req.session.user && req.cookies.user_sid) {
+        console.log("GET /login SessionCheck OK");
         res.redirect("/main");
       }
       else {
+        console.log("GET /login SessionCheck NG");
         next();
       }
     },
@@ -83,14 +97,15 @@ app.route("/login")
     }
   )
   .post((req, res) => {
+    console.log("POST /login");
     if (utils.authUser(req.body.username, req.body.password)) {
+      console.log("POST /login SessionCheck OK");
       req.session.user = req.body.username;
-      console.log("login succeeded");
       res.location("/main");
       res.end();
       //res.redirect("/main");
     } else {
-      console.log("login fail");
+      console.log("POST /login SessionCheck NG");
     }     
   });
 
@@ -172,48 +187,48 @@ app.route("/records")
     });
   });
       
-app.route("/api/info")
+app.route("/apiusr")
   .get(sessionCheckApi, (req, res) => {
     var retv = {
       Username: req.session.user,
-      Resource: "address",
+      URL: "",
       Token: "",
       Permission: "",
     };
 
-    utils.getApiUsers()
+    utils.getApiUser(req.session.user)
     .then((data) => {
-      console.log("API User data");
-      console.log(data);
-      
-      console.log("Session User");
-      console.log(req.session.user);
-
-      console.log(data.admin);
-      console.log(data.guest);
-      console.log(data.hogehoge);
-      console.log(data.user);
-
-      if(req.session.user in data) {
-        retv.Token = data[req.session.user].AuthToken;
-        retv.Permission = data[req.session.user].Privileges;
+      if(data != null) {
+        var conf = utils.getConf();
+        retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
+        retv.Token = data.AuthToken;
+        retv.Permission = data.Privileges;
       }
-
-      console.log(retv);
-      res.send({Result: "OK", Data: retv});
+      res.send({
+        Result: "OK",
+        Data: retv,
+      });
     })
     .catch((err) => {
-      console.log("userinfo error");
       console.log(err.message);
       res.send({Result: "NG", Message: err.message});
     });
-  });
+  })
+  .post(sessionCheckApi, (req, res) => {
+    var retv = {
+      Username: req.session.user,
+      URL: "",
+      Token: "",
+      Permission: "",
+    };
 
-app.route("/api/newusr")
-  .get(sessionCheckApi, (req, res) => {
-    utils.addApiUsers(req.session.user)
+    utils.addApiUser(req.session.user)
     .then((data) => {
       console.log("API New User Succeeded");
+      var conf = utils.getConf();
+      retv.Token = data.AuthToken;
+      retv.Permission = data.Privileges;
+      retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
       res.send({Result: "OK", Data:data});
     })
     .catch((err) => {
