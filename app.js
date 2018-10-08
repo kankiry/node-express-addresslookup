@@ -9,12 +9,9 @@ var http = require("http");
 var utils = require("./utils");
 
 var app = express();
-
-// view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-// mount common middleware
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,22 +36,23 @@ app.use((req, res, next) => {
 
 var sessionCheck = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) {
-  //if (req.session.user) {
     res.redirect("/main");
   } else {
     next();
   }
 };
 
-var sessionCheckApi = (req, res, next) => {
+var sessionCheckAjax = (req, res, next) => {
   if (req.session.user && req.cookies.user_sid) next();
   else res.status(401).end();
 };
 
-app.get('/', function(req, res) {
+// index 
+app.get('/', (req, res) => {
   res.redirect('/main');
 });
 
+// signup page
 app.route('/signup')
   .get(sessionCheck, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "signup.html"));
@@ -65,12 +63,12 @@ app.route('/signup')
       res.location("/main");
       res.send({Result:"OK"});
     } else {
-      //res.location("/signup");
       res.send({Result:"NG"});
     }
     res.end();
   });
 
+// login page
 app.route("/login")
   .get(sessionCheck, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "www", "login.html"));
@@ -82,11 +80,11 @@ app.route("/login")
       res.location("/main");
       res.send({Result:"OK"});
     } else {
-      //res.location("/login");
       res.send({Result:"NG"});
     }
   });
 
+// main page
 app.route("/main")
   .get((req, res) => {
     if (req.session.user && req.cookies.user_sid) {
@@ -96,6 +94,7 @@ app.route("/main")
     }
   })
 
+// profile page
 app.route("/profile")
   .get((req, res) => {
     if (req.session.user && req.cookies.user_sid) {
@@ -105,8 +104,9 @@ app.route("/profile")
     }
   })
 
+// MySQL Create
 app.route("/insert")
-  .post(sessionCheckApi, (req, res) => {
+  .post(sessionCheckAjax, (req, res) => {
     var conf = utils.getconf();
     var conn = mysql.createConnection({
       host: conf.database_host,
@@ -114,22 +114,21 @@ app.route("/insert")
       password: conf.database_password,
       database: conf.database_name,
     });
-    conn.connect( function(err) {
+    conn.connect( (err) => {
       if(err) res.send( {Result:"NG", Message:err.message} );
 
       var sql = "INSERT INTO address (zip, prefecture, city, other, kana) VALUES ?";
       var data = [
-        parseInt(req.body.Data.zip),
+        req.body.Data.zip,
         req.body.Data.prefecture,
         req.body.Data.city,
         req.body.Data.other,
         req.body.Data.kana
       ];
 
-      conn.query(sql, [[data]], function(err) {
+      conn.query(sql, [[data]], (err) => {
         if(err) res.send( {Result:"NG", Message:err.message} );
         else {
-          console.log("POST /insert SUCCEEDED");
           res.send({Result:"OK"});
           conn.end();
         }
@@ -137,8 +136,9 @@ app.route("/insert")
     });
   });
 
+// MySQL Read
 app.route("/records")
-  .post(sessionCheckApi, (req, res) => {
+  .post(sessionCheckAjax, (req, res) => {
     var conf = utils.getconf();
     var conn = mysql.createConnection({
       host: conf.database_host,
@@ -146,7 +146,7 @@ app.route("/records")
       password: conf.database_password,
       database: conf.database_name
     });
-    conn.connect( function(err) {
+    conn.connect( (err) => {
       if(err) res.send( {Result:"NG", Message:err.message} );
         
       var filter = [];
@@ -161,23 +161,126 @@ app.route("/records")
       else if(filter.length == 1) where += filter[0];
       else if(2 <= filter.length) where += filter.join(" AND ");
 
-      //var fields = ["id", "zip", "prefecture", "city", "other", "kana"];
       var sql = "SELECT * FROM address" + where;
 
-      //var query = conn.query(sql, [fields], function(err, result) {
-      var query = conn.query(sql, function(err, result) {
+      var query = conn.query(sql, (err, result) => {
         if(err) res.send( {Result:"NG", Message:err.message} );
         else {
-          console.log("POST /records SUCCEEDED");
           res.send({Result:"OK", Data:result});
           conn.end();
         }
       });
     });
   });
+
+// MySQL Delete
+app.route("/delete")
+  .post(sessionCheckAjax, (req, res) => {
+    var conf = utils.getconf();
+    var conn = mysql.createConnection({
+      host: conf.database_host,
+      user: conf.database_user,
+      password: conf.database_password,
+      database: conf.database_name
+    });
+    console.log("*** /delete ***");
+    console.log(req.body.Filter);
+
+    conn.connect( (err) => {
+      if(err) res.send( {Result:"NG", Message:err.message} );
+      var query = conn.query("DELETE FROM address WHERE id = ?", [req.body.Filter.id], (err, result) => {
+      //var query = conn.query(sql, (err, result) => {
+        if(err) res.send( {Result:"NG", Message:err.message} );
+        else {
+          res.send({Result:"OK"});
+          conn.end();
+        }
+      });
+    });
+  });
+
+// get API Server's user
+var getAPIUserInfo = function(username) {
+  return new Promise((resolve, reject) => {
+    var conf = utils.getconf();
+    var options = {
+      hostname: conf.apiserver_host,
+      port: parseInt(conf.apiserver_port),
+      path: "/apiserver/admin.rsc/Users",
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json;charset=utf-8",
+        "x-cdata-authtoken": conf.apiserver_token,
+      },
+    };
+
+    var body = "";
+    var req = http.request(options, (res) => {
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
+
+      res.on("end", () => {
+        var result = JSON.parse(body).value.find(v => v.UserName == username);
+        if(result !== undefined) resolve(result);
+        else resolve(null);
+      });
+    });
+
+    req.on("error", (err) => {
+      reject(err);
+    });
+
+    req.end();
+  });
+}
+
+// add API Server's user
+var createAPIUser = function(username) {
+  return new Promise((resolve, reject) => {
+    var conf = utils.getconf();
+    var options = {
+      hostname: conf.apiserver_host,
+      port: parseInt(conf.apiserver_port),
+      path: "/apiserver/admin.rsc/Users",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json;charset=utf-8",
+        "x-cdata-authtoken": conf.apiserver_token,
+      },
+    };
+
+    var body = "";
+    var req = http.request(options, (res) => {
+      res.on("data", chunk => {
+        body += chunk;
+      });
+
+      res.on("end", () => {
+        var result = JSON.parse(body);
+        if("error" in result) throw new Error(result.error.message);
+        else resolve(result);
+      });
+    });
+
+    req.on("error", (err) => {
+      reject(err);
+    });
+
+    var postdata = JSON.stringify({
+      "@odata.type":"CDataAPI.Users.rsd",
+      "UserName": username,
+      "Privileges": "GET,POST,DELETE",
+    });
+
+    req.write(postdata);
+    req.end();
+  });
+}
       
+// get or add API Server's user
 app.route("/apiusr")
-  .get(sessionCheckApi, (req, res) => {
+  .get(sessionCheckAjax, (req, res) => {
     var retv = {
       Username: req.session.user,
       URL: "",
@@ -185,7 +288,7 @@ app.route("/apiusr")
       Permission: "",
     };
 
-    utils.getApiUser(req.session.user)
+    getAPIUserInfo(req.session.user)
     .then((data) => {
       if(data != null) {
         var conf = utils.getconf();
@@ -199,11 +302,13 @@ app.route("/apiusr")
       });
     })
     .catch((err) => {
-      console.log(err.message);
-      res.send({Result: "NG", Message: err.message});
+      res.send({
+        Result: "NG",
+        Message: err.message
+      });
     });
   })
-  .post(sessionCheckApi, (req, res) => {
+  .post(sessionCheckAjax, (req, res) => {
     var retv = {
       Username: req.session.user,
       URL: "",
@@ -211,26 +316,23 @@ app.route("/apiusr")
       Permission: "",
     };
 
-    utils.addApiUser(req.session.user)
+    createAPIUser(req.session.user)
     .then((data) => {
-      console.log("API New User Succeeded");
       var conf = utils.getconf();
+      retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
       retv.Token = data.AuthToken;
       retv.Permission = data.Privileges;
-      retv.URL = [conf.apiserver_host + ":" + conf.apiserver_port, "api.rsc", "address"].join("/");
-      res.send({Result: "OK", Data:data});
+      res.send({Result: "OK", Data: retv});
     })
     .catch((err) => {
-      console.log("API New User Failed");
-      console.log(err.message);
       res.send({Result: "NG", Message: err.message});
     });
   });
 
+// logout
 app.route("/logout")
   .get((req, res) => {
     res.clearCookie('user_sid');
-    console.log("*** LOGOUT ***");
     res.redirect("/login");
   });
 

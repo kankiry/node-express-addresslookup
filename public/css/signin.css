@@ -43,3 +43,7 @@ body {
   font-size: 18pt;
   text-align: center;
 }
+
+.form-signin-username {
+  margin-bottom: 10px;
+}

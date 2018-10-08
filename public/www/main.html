@@ -40,12 +40,12 @@
         <h3 class="text-muted">新規追加</h4>
         <hr class="title-border">
         <div class="row maintable-column" id="insert">
-          <input type="number" name="id" class="col-sm-1 quantity" placeholder="ID">
-          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="郵便番号">
-          <input type="text" name="prefecture" class="col-sm-1" placeholder="都道府県">
-          <input type="text" name="city" class="col-sm-2" placeholder="市区町村">
-          <input type="text" name="other" class="col-sm-3" placeholder="町・字">
-          <input type="text" name="kana" class="col-sm-4" placeholder="読み仮名">
+          <input type="number" name="id" class="maintable-input col-sm-1 quantity" placeholder="ID" disabled="disabled">
+          <input type="number" name="zip" class="maintable-input col-sm-1 quantity" placeholder="郵便番号">
+          <input type="text" name="prefecture" class="maintable-input col-sm-1" placeholder="都道府県">
+          <input type="text" name="city" class="maintable-input col-sm-2" placeholder="市区町村">
+          <input type="text" name="other" class="maintable-input col-sm-3" placeholder="町・字">
+          <input type="text" name="kana" class="maintable-input col-sm-4" placeholder="読み仮名">
         </div>
         <div class="maintable-control clearfix">
           <button id="apply" class="btn btn-sm btn-primary pull-right" type="submit" >Insert</button>
@@ -55,12 +55,12 @@
       <h3 class="text-muted">住所一覧</h3>
       <hr class="title-border">
         <div class="row maintable-column" id="filter">
-          <input type="number" name="id" class="col-sm-1 quantity" placeholder="filter ...">
-          <input type="number" name="zip" class="col-sm-1 quantity" placeholder="">
-          <input type="text" name="prefecture" class="col-sm-1" placeholder="">
-          <input type="text" name="city" class="col-sm-2" placeholder="">
-          <input type="text" name="other" class="col-sm-3" placeholder="">
-          <input type="text" name="kana" class="col-sm-4" placeholder="">
+          <input type="number" name="id" class="maintable-input col-sm-1 quantity" placeholder="filter ...">
+          <input type="number" name="zip" class="maintable-input col-sm-1 quantity" placeholder="">
+          <input type="text" name="prefecture" class="maintable-input col-sm-1" placeholder="">
+          <input type="text" name="city" class="maintable-input col-sm-2" placeholder="">
+          <input type="text" name="other" class="maintable-input col-sm-3" placeholder="">
+          <input type="text" name="kana" class="maintable-input col-sm-4" placeholder="">
         </div>
       </div>
       <div class="maintable">
@@ -87,12 +87,23 @@
     </div> <!-- /container -->
     <script type="text/javascript">
     $(document).ready(function(){
+      var remove = function() {
+        var id = $(this).parent().parent().children().first().text();
+        $.post(
+          "/delete",
+          {Filter: {"id": id}}
+        )
+          .done((data, textStatus, jqXHR) => {
+            console.log("/delete succeedes");
+            update();
+          })
+          .fail((data, textStatus, error) => {
+            console.log("/delete failed");
+            console.log(error.message);
+          });
+      };
+
       var update = function() {
-        var remove = function() {
-          var id = $(this).parent().parent().children().first().text();
-          console.log("remove clicked");
-        };
-        console.log("update filter: ");
         var filter = {
           id: $("#filter input[name='id']").val(),
           zip: $("#filter input[name='zip']").val(),
@@ -108,30 +119,29 @@
           "/records",
           {Filter: filter}
         )
-          .done(function(data, textStatus, jqXHR) {
-            console.log("recodes succeeded");
-
-            if(data.Result == "OK") {
-              // remove all records
-              $("#records").children("tr").remove();
+        .done(function(data, textStatus, jqXHR) {
+          console.log("recodes succeeded");
+          if(data.Result == "OK") {
+            // remove all records
+            $("#records").children("tr").remove();
 
             // add records again
-              data.Data.forEach(v => {
-                $("<tr></tr>").appendTo("#records");
-                $("<td></td>").text(v.id).appendTo("#records tr:last-child");
-                $("<td></td>").text(v.zip).appendTo("#records tr:last-child");
-                $("<td></td>").text(v.prefecture).appendTo("#records tr:last-child");
-                $("<td></td>").text(v.city).appendTo("#records tr:last-child");
-                $("<td></td>").text(v.other).appendTo("#records tr:last-child");
-                $("<td></td>").text(v.kana).appendTo("#records tr:last-child");
-                $("#records tr:last-child td:last-child").append('<span class="pull-right glyphicon glyphicon-remove-sign" aria-hidden="true"></span>');
-                $("#records tr:last-child td:last-child span").click(remove);
-              });
-            }
-          })
-          .fail(function(data, textStatus, error) {
-            console.log("records failed");
-          });
+            data.Data.forEach(v => {
+              $("<tr></tr>").appendTo("#records");
+              $("<td></td>").text(v.id).appendTo("#records tr:last-child");
+              $("<td></td>").text(v.zip).appendTo("#records tr:last-child");
+              $("<td></td>").text(v.prefecture).appendTo("#records tr:last-child");
+              $("<td></td>").text(v.city).appendTo("#records tr:last-child");
+              $("<td></td>").text(v.other).appendTo("#records tr:last-child");
+              $("<td></td>").text(v.kana).appendTo("#records tr:last-child");
+              $("#records tr:last-child td:last-child").append('<span class="pull-right glyphicon glyphicon-remove-circle" aria-hidden="true"></span>');
+              $("#records tr:last-child td:last-child span").click(remove);
+            });
+          }
+        })
+        .fail(function(data, textStatus, error) {
+          console.log("records failed");
+        });
       }
 
       update();
@@ -152,6 +162,7 @@
           )
           .done(function(data, textStatus, jqXHR) {
             console.log("insert succeeded");
+            update();
           })
           .fail(function(data, textStauts, error) {
             console.log("insert failed");
