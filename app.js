@@ -161,7 +161,7 @@ app.route("/records")
       else if(filter.length == 1) where += filter[0];
       else if(2 <= filter.length) where += filter.join(" AND ");
 
-      var sql = "SELECT * FROM address" + where;
+      var sql = "SELECT * FROM address" + where + " LIMIT 1000";
 
       var query = conn.query(sql, (err, result) => {
         if(err) res.send( {Result:"NG", Message:err.message} );
