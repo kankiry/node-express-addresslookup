@@ -2,7 +2,6 @@ var fs  = require("fs");
 var readline = require("readline");
 var mysql = require("mysql");
 var http = require("http");
-var rp = require("request-promise");
 
 function getusers() {
   var users = {};

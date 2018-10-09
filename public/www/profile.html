@@ -95,7 +95,6 @@
       var update = function() {
         $.get("/apiusr")
           .done((data, textStatus, jqXHR) => {
-            console.log(data);
             $("#username").val(data.Data.Username);
             $("#apitoken").val(data.Data.Token);
 
@@ -106,7 +105,7 @@
             }
           })
           .fail((data, textStatus, err) => {
-            console.log(data);
+            console.log(err.message);
           });
       };
 
@@ -116,12 +115,13 @@
       $("#gettoken").click(() => {
         $.post("/apiusr")
           .done((data, textStatus, jqXHR) => {
-            console.log("newusr succeeded");
-            console.log(data);
+            $("#apitoken").val(data.Data.Token);
+            $("#url").val(data.Data.URL);
+            $("#permission").val(data.Data.Permission);
             $("#gettoken").prop("disabled", true);
           })
           .fail((data, textStatus, err) => {
-            console.log(data);
+            console.log(err.message);
           });
       });
           
